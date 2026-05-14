@@ -25,7 +25,7 @@ env.RESULTS = "${PIXI_PROJECT_ROOT}/data/results"
 env.SCRIPTS = "${PIXI_PROJECT_ROOT}/workflow/scripts"
 
 [dependencies]
-python = ">=3.14.4,<3.15"
+python = "<3.13"
 ipython = ">=9.13.0,<10"
 ipykernel = ">=7.2.0,<8"
 jupyterlab = ">=4.5.7,<5"
@@ -34,6 +34,7 @@ openpyxl = ">=3.1.5,<4"
 scikit-learn = ">=1.8.0,<2"
 pandas = ">=3.0.3,<4"
 seaborn = ">=0.13.2,<0.14"
+scipy = ">=1.17.1,<2"
 
 [pypi-dependencies]
 damply = ">=0.26.1, <0.27"
