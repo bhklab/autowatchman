@@ -30,6 +30,8 @@ I am saving out the fully preprocessed data as a `.csv` for easier downstream us
 
 - The train_test_split function doesn't like the continuous MeshVolume value, so going to do above and below median
 
+- Decided on a train-validation split of 80-20
+
 ## Dependencies and Environment
 
 
