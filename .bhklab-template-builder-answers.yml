@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier
+_commit: 0.14.2
+_src_path: gh:bhklab/bhklab-project-template
+additional_authors_raw: Kaitlyn Kobayashi
+author_email: bhklab.katyscott@gmail.com
+author_full_name: Katy Scott
+github_username: strixy16
+has_additional_authors: true
+project_description: 'AutoWATChmAN is a radiomics project in testicular cancer. '
+project_name: AutoWATChmAN
+project_slug: autowatchman
+publish_to_github: false
+python_version: '3.12'
+repo_location: bhklab
