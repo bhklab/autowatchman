@@ -25,19 +25,19 @@ env.RESULTS = "${PIXI_PROJECT_ROOT}/data/results"
 env.SCRIPTS = "${PIXI_PROJECT_ROOT}/workflow/scripts"
 
 [dependencies]
-python = "<3.13"
-ipython = "*"
-ipykernel = "*"
-jupyterlab = "*"
-pip = "*"
+python = ">=3.14.4,<3.15"
+ipython = ">=9.13.0,<10"
+ipykernel = ">=7.2.0,<8"
+jupyterlab = ">=4.5.7,<5"
+pip = ">=26.1.1,<27"
 openpyxl = ">=3.1.5,<4"
 scikit-learn = ">=1.8.0,<2"
-pandas = "<=3.0.2"
+pandas = ">=3.0.3,<4"
 seaborn = ">=0.13.2,<0.14"
 
 [pypi-dependencies]
-damply = ">=0.10.0, <0.11"
-med-imagetools = ">=2.15.0, <3"
+damply = ">=0.26.1, <0.27"
+med-imagetools = ">=1.2.0.2, <2"
 
 [tasks]
 example_script = {cmd="python $SCRIPTS/example_script.py", description="Run an example script"}
@@ -45,7 +45,7 @@ example_script = {cmd="python $SCRIPTS/example_script.py", description="Run an e
 ############################################## QUALITY ###############################################
 # Quality includes linting, type checking, and formatting
 [feature.quality.dependencies]
-ruff = "*"
+ruff = ">=0.15.13,<0.16"
 
 [feature.quality.tasks]
 ruff-check.cmd = ["ruff", "check"]
@@ -63,8 +63,8 @@ qc.description = "Quality check: ruff check and format"
 ############################################## DOCS ################################################
 
 [feature.docs.dependencies]
-mkdocs = "*"
-mkdocs-include-markdown-plugin = ">=7.0.0,<8"
+mkdocs = ">=1.6.1,<2"
+mkdocs-include-markdown-plugin = ">=7.2.0,<8"
 
 [feature.docs.tasks.doc-build]
 cmd = "mkdocs build -f mkdocs.yaml"
