@@ -25,6 +25,11 @@ Manually made the slicer index-simple
 
 I am saving out the fully preprocessed data as a `.csv` for easier downstream usage.
 
+#### Stratification for model development
+[2026-05-14] I think I'm going to handle the multiple lymph nodes by summing their volume and then including the number of lymph nodes as well, so will end up stratifying by relapse status, total lymph node volume, and number of lymph nodes.  
+
+- The train_test_split function doesn't like the continuous MeshVolume value, so going to do above and below median
+
 ## Dependencies and Environment
 
 
