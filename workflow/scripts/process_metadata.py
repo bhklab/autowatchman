@@ -1,3 +1,7 @@
+"""
+This script processes the metadata for the PMCC AutoWATChmAN project. It checks for the existence of a cleaned CSV metadata file, and if it doesn't exist, it looks for an Excel file to convert. The Excel file is expected to have been manually edited to remove extra calculations and class labels around the data. The script then saves the cleaned metadata as a CSV file for further use in the project.
+"""
+
 import logging
 import pandas as pd
 from damply import dirs
@@ -29,10 +33,6 @@ def main() -> None:
     else:
         logger.info(f'Clean metadata file found at {metadata_file_path}. Loading CSV...')
         metadata_df = pd.read_csv(metadata_file_path)
-
-    
-
-
     return
 
 
