@@ -13,6 +13,7 @@ preview = ["pixi-build"]
 [environments]
 quality = { features = ["quality"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
+jarvais = {features = ["jarvais"], no-default-feature = true}
 
 [activation]
 # convenient variables which can be used in scripts
@@ -34,7 +35,6 @@ openpyxl = ">=3.1.5,<4"
 scikit-learn = ">=1.8.0,<2"
 pandas = ">=3.0.3,<4"
 seaborn = ">=0.13.2,<0.14"
-scipy = ">=1.17.1,<2"
 
 [pypi-dependencies]
 damply = ">=0.26.1, <0.27"
@@ -42,6 +42,17 @@ med-imagetools = ">=1.2.0.2, <2"
 
 [tasks]
 example_script = {cmd="python $SCRIPTS/example_script.py", description="Run an example script"}
+
+
+############################################## JARVAIS ###############################################
+[feature.jarvais.pypi-dependencies]
+jarvais = ">=0.21.0, <0.22"
+damply = ">=0.26.1, <0.27"
+
+[feature.jarvais.dependencies]
+python = "==3.11"
+
+
 
 ############################################## QUALITY ###############################################
 # Quality includes linting, type checking, and formatting
