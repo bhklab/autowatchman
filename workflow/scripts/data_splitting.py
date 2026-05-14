@@ -20,7 +20,7 @@ def main(
         radiomic_feature_path: Path | str,
         clinical_stratification: list[str],
         radiomic_stratification: list[str] = None,
-        test_size: float = 0.2,
+        valid_size: float = 0.2,
         random_seed=10,
         ) -> tuple[pd.Series, pd.DataFrame, pd.DataFrame]:
     # load metadata file
@@ -54,10 +54,10 @@ def main(
     # combine the stratification columns into one dataframe
     combined_strat_df = clinical_stratification_df.join(agg_radiomic_stratification_df, how='inner')
     
-    # Perform train test splitting
-    tr_samples, test_samples = train_test_split(
+    # Perform train valid splitting
+    tr_samples, valid_samples = train_test_split(
         combined_strat_df,
-        test_size=test_size,
+        test_size=valid_size,
         random_state = random_seed,
         shuffle = True,
         stratify = combined_strat_df
@@ -65,10 +65,10 @@ def main(
 
     # add split labels to each subset and recombine
     tr_samples['split'] = 'train'
-    test_samples['split'] = 'test'
+    valid_samples['split'] = 'valid'
 
-    all_samples = pd.concat([tr_samples,test_samples], axis=0, sort=True)
-    split_labels = all_samples['split']
+    all_samples = pd.concat([tr_samples,valid_samples], axis=0)
+    split_labels = all_samples['split'].sort_index()
 
     # confirmation of distribution split plots
     # Set up directory to save figures to
@@ -87,10 +87,11 @@ def main(
             multiple='dodge',
             shrink=.8,
             hue='split',
-            discrete=True
+            discrete=True,
+            hue_order = ['train', 'valid']
         )
 
-    dist_fig.savefig(fig_dir / f'split_dist_fig_test_{test_size}.png', bbox_inches='tight')
+    dist_fig.savefig(fig_dir / f'split_dist_fig_valid_{valid_size}.png', bbox_inches='tight')
 
     # scatter plot for volume of lymph nodes
     # map the split column onto the radiomic stratification dataframe
@@ -109,11 +110,12 @@ def main(
             x = 'LymphID',
             y = 'original_shape_MeshVolume',
             hue = 'split',
+            hue_order = ['train', 'valid']
         )
     )
     scatter_fig.axes[0].tick_params(axis='x', labelbottom=False)
 
-    scatter_fig.savefig(fig_dir / f'split_scatter_fig_test_{test_size}.png', bbox_inches='tight')
+    scatter_fig.savefig(fig_dir / f'split_scatter_fig_valid_{valid_size}.png', bbox_inches='tight')
 
     vol_dist_fig = plt.figure(figsize=(8,7))
     vol_dist_fig.add_axes(
@@ -122,11 +124,12 @@ def main(
             x = 'original_shape_MeshVolume',
             stat = 'count',
             multiple = 'layer',
-            hue = 'split'
+            hue = 'split',
+            hue_order = ['train', 'valid']
         )
     )
 
-    vol_dist_fig.savefig(fig_dir / f'vol_hist_fig_test_{test_size}.png', bbox_inches='tight')
+    vol_dist_fig.savefig(fig_dir / f'vol_hist_fig_valid_{valid_size}.png', bbox_inches='tight')
 
     labelled_clinical_metadata_df = clinical_metadata_df.copy()
     labelled_clinical_metadata_df['split'] = split_labels
@@ -147,10 +150,10 @@ if __name__ == '__main__':
     clinical_stratification = ['RELAPSE_STATUS']
     radiomic_stratification = ['original_shape_MeshVolume']
 
-    test_size = .2
+    valid_size = .2
 
-    labels, lbl_clinical, lbl_radiomic = main(dataset_name, clinical_metadata_path, radiomic_feature_path, clinical_stratification, radiomic_stratification, test_size=test_size, random_seed=42)
+    labels, lbl_clinical, lbl_radiomic = main(dataset_name, clinical_metadata_path, radiomic_feature_path, clinical_stratification, radiomic_stratification, valid_size=valid_size, random_seed=42)
 
-    labels.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'train_test_{test_size}_labels.csv')
-    lbl_clinical.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'labelled_clinical_metadata_test_{test_size}.csv')
-    lbl_radiomic.to_csv(dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / 'labelled_linear_all_images_features.csv')
+    labels.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'train_valid_{valid_size}_labels.csv')
+    lbl_clinical.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'labelled_clinical_metadata_valid_{valid_size}.csv')
+    lbl_radiomic.to_csv(dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / f'labelled_linear_all_images_features_valid_{valid_size}.csv')
