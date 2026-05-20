@@ -132,7 +132,7 @@ def main(
     vol_dist_fig.savefig(fig_dir / f'vol_hist_fig_valid_{valid_size}.png', bbox_inches='tight')
 
     labelled_clinical_metadata_df = clinical_metadata_df.copy()
-    labelled_clinical_metadata_df['split'] = split_labels
+    labelled_clinical_metadata_df = pd.merge(labelled_clinical_metadata_df, split_labels, left_index=True, right_index=True, how='inner')
 
     return split_labels, labelled_clinical_metadata_df, labelled_radiomic_feature_df
 
