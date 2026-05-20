@@ -154,6 +154,6 @@ if __name__ == '__main__':
 
     labels, lbl_clinical, lbl_radiomic = main(dataset_name, clinical_metadata_path, radiomic_feature_path, clinical_stratification, radiomic_stratification, valid_size=valid_size, random_seed=42)
 
-    labels.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'train_valid_{valid_size}_labels.csv')
-    lbl_clinical.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'labelled_clinical_metadata_valid_{valid_size}.csv')
-    lbl_radiomic.to_csv(dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / f'labelled_linear_all_images_features_valid_{valid_size}.csv')
+    labels.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'train_valid_{valid_size}_labels.csv', na_rep='NA')
+    lbl_clinical.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'labelled_clinical_metadata_valid_{valid_size}.csv', na_rep='NA')
+    lbl_radiomic.to_csv(dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / f'labelled_linear_all_images_features_valid_{valid_size}.csv', na_rep='NA')
