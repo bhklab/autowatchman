@@ -13,23 +13,30 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def main() -> None:
+def main(force:bool = False) -> None:
     # load metadata file
     metadata_file_path = dirs.PROCDATA / 'PMCC_AutoWATChmAN' / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.csv'
 
-    if not metadata_file_path.exists():
+    if not metadata_file_path.exists() or force:
          logger.info(f'Clean metadata file not found at {metadata_file_path}. Looking for Excel file to convert...')
 
          # This file has been manually edited to remove extra calculations and class labels around the data
          temp_metadata_file = dirs.PROCDATA / 'PMCC_AutoWATChmAN' / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.xlsx'
          if not temp_metadata_file.exists():
-             logger.error(f'Excel metadata file not found at {temp_metadata_file}. Please ensure the file exists and is in the correct location.')
-             return
+             message = f'Excel metadata file not found at {temp_metadata_file}. Please ensure the file exists and is in the correct location.'
+             logger.error(message)
+             raise FileNotFoundError(message)
+             
          else:
              logger.info(f'Excel metadata file found at {temp_metadata_file}. Converting to CSV...')
-             metadata_df = pd.read_excel(temp_metadata_file) 
-             metadata_df = metadata_df.drop(columns=['ID'])
-             metadata_df.to_csv(dirs.PROCDATA / 'PMCC_AutoWATChmAN' / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.csv', index=False)
+             # Read in spreadsheet, handling NA values
+             metadata_df = pd.read_excel(temp_metadata_file, na_values=[9999, 'unknown'], dtype={'LN_NUM': 'Int64'}) 
+             
+             # Drop columns with identifying info or unneeded for prediction
+             metadata_df = metadata_df.drop(columns=['ID', 'DOB', 'DATE_CT', 'LOCATION_CT', 'NUMBER_CT', 'CONSULT_DATE', 'RELAPSE_DATE', 'FU_LAST'])
+
+             # Save out cleaned data
+             metadata_df.to_csv(dirs.PROCDATA / 'PMCC_AutoWATChmAN' / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.csv', index=False, na_rep='NA')
 
     else:
         logger.info(f'Clean metadata file found at {metadata_file_path}. Loading CSV...')
@@ -39,4 +46,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     logger.info(f'Starting process_metadata script...')
-    main()
+    main(force=True)
