@@ -1,8 +1,8 @@
 from damply import dirs
 import pandas as pd
 
-# from jarvais.analyzer import Analyzer
-# from jarvais.trainer import TrainerSupervised
+from jarvais.analyzer import Analyzer
+from jarvais.trainer import TrainerSupervised
 
 data_dir = dirs.PROCDATA / "PMCC_AutoWATChmAN"
 output_dir = dirs.RESULTS / "PMCC_AutoWATChmAN" / "jarvais"
@@ -12,7 +12,9 @@ if not output_dir.exists():
 
 full_clinical = pd.read_csv(data_dir / 'metadata' / 'labelled_clinical_metadata_valid_0.2.csv', index_col=0)
 clinical = full_clinical[full_clinical['split']=='train']
-clin_pred_cols = ['AGE_DIAG', 'LVI', 'RETE_INV', 'TMRSZE', 'HIST_SEM', 'HIST_EC', 'HIST_CHOR', 'HIST_YOLK', 'HIST_TERA']
+clin_cat_cols = ['LVI', 'RETE_INV', 'LATERAL']
+clin_cont_cols = ['AGE_DIAG', 'HIST_SEM', 'HIST_EC', 'HIST_CHOR', 'HIST_YOLK', 'HIST_TERA']
+clin_pred_cols = clin_cat_cols + clin_cont_cols
 
 full_features = pd.read_csv(data_dir / 'features' / 'pyradiomics' / 'labelled_linear_all_images_features_valid_0.2.csv', index_col=0)
 features = full_features[full_features['split']=='train']
@@ -20,67 +22,98 @@ features = features.drop('split', axis=1)
 lymph_index = features['LymphID']
 features = features.filter(regex=r"^original_*")
 
-MODEL_TYPE = 'clinvol'
+MODEL_TYPE = 'clinicoradiomic_no_shape'
 TARGET = 'RELAPSE_STATUS'
-FEAT_NUM = 15
+FEAT_NUM = 5
 REDUCTION_METHOD = 'mrmr'
-output_dir = output_dir / f"{MODEL_TYPE}_{FEAT_NUM}" / TARGET
 
+if FEAT_NUM > 0 and REDUCTION_METHOD is None:
+    raise ValueError("If FEAT_NUM is greater than 0, REDUCTION_METHOD must be specified.")
+elif FEAT_NUM == 0:
+    output_dir = output_dir / TARGET / f"{MODEL_TYPE}_all"
+else:
+    output_dir = output_dir / TARGET / f"{MODEL_TYPE}_{FEAT_NUM}_{REDUCTION_METHOD}"
+
+# Initilize both of these as empty, set in match case if used
+cat_cols = [TARGET]
+cont_cols = []
 match MODEL_TYPE:
     case 'clinical':
         train_data = clinical.loc[:, [TARGET] + clin_pred_cols]
+        cat_cols += clin_cat_cols
+        cont_cols += clin_cont_cols
     case 'vol_count':
         train_data = clinical.loc[:, [TARGET, 'LN_NUM']]
+        cont_cols += ['LN_NUM']
     case 'volume':
         train_data = pd.merge(clinical.loc[:, [TARGET]], features.loc[:, 'original_shape_MeshVolume'], left_index=True, right_index=True)
         train_data.index = lymph_index
+        cont_cols += ['original_shape_MeshVolume']
     case 'clinvol':
         train_data = pd.merge(clinical.loc[:, [TARGET] + clin_pred_cols], features.loc[:, 'original_shape_MeshVolume'], left_index=True, right_index=True)
         train_data.index = lymph_index
+        cat_cols += clin_cat_cols
+        cont_cols += clin_cont_cols + ['original_shape_MeshVolume']
     case 'radiomic':
         train_data = pd.merge(clinical.loc[:, [TARGET]], features, left_index=True, right_index=True)
         train_data.index = lymph_index
+        cont_cols += features.columns.to_list()
+    case 'radiomic_no_shape':
+        features_no_shape = features.filter(regex=r"^(?!original_shape).*", axis=1)
+        train_data = pd.merge(clinical.loc[:, [TARGET]], features_no_shape, left_index=True, right_index=True)
+        train_data.index = lymph_index
+        cont_cols += features_no_shape.columns.to_list()
     case 'clinicoradiomic':
         train_data = pd.merge(clinical.loc[:, [TARGET] + clin_pred_cols], features, left_index=True, right_index=True)
         train_data.index = lymph_index
+        cat_cols += clin_cat_cols
+        cont_cols += clin_cont_cols + features.columns.to_list()
+    case 'clinicoradiomic_no_shape':
+        features_no_shape = features.filter(regex=r"^(?!original_shape).*", axis=1)
+        train_data = pd.merge(clinical.loc[:, [TARGET] + clin_pred_cols], features_no_shape, left_index=True, right_index=True)
+        train_data.index = lymph_index
+        cat_cols += clin_cat_cols
+        cont_cols += clin_cont_cols + features_no_shape.columns.to_list()
 
-print(train_data.head())
-
-
-
-# print(f"Initializing Analyzer for {TARGET}...")
-# # Run Analyzer
-# analyzer = Analyzer(
-#     train_data,
-#     output_dir = output_dir / f"analyzer_{TARGET}",
-#     categorical_columns = [TARGET],
-#     target_variable = TARGET,
-#     task="classification"
-# )
-
-# # Drop multiplotting, expensive operation
-# analyzer.settings.visualization.plots.remove('multiplot')
-
-# # # print(f"Running Analyzer for {TARGET}...")
-# # # analyzer.run()
+for col in cont_cols:
+    train_data[col] = train_data[col].fillna(0)
 
 
-# print(f"Initializing Trainer for {TARGET}...")
-# # Run Trainer
-# trainer = TrainerSupervised(
-#     output_dir= output_dir / f"trainer_{TARGET}",
-#     target_variable = TARGET,
-#     task = 'binary',
-#     stratify_on= TARGET,
-#     test_size=0.2,
-#     k_folds=5,
-#     reduction_method=reduction_method,
-#     keep_k=feature_num,
-#     explain = True
-# )
+print(f"Initializing Analyzer for {TARGET}...")
+# Run Analyzer
+analyzer = Analyzer(
+    train_data,
+    output_dir = output_dir / f"analyzer_{TARGET}",
+    categorical_columns = cat_cols,
+    continuous_columns = cont_cols,
+    target_variable = TARGET,
+    task="classification",
+)
+
+# Drop multiplotting, expensive operation
+analyzer.settings.visualization.plots.remove('multiplot')
+
+print(f"Running Analyzer for {MODEL_TYPE}_{FEAT_NUM} {TARGET}...")
+analyzer.run()
+
+
+print(f"Initializing Trainer for {TARGET}...")
+# Run Trainer
+trainer = TrainerSupervised(
+    output_dir= output_dir / f"trainer_{TARGET}",
+    target_variable = TARGET,
+    task = 'binary',
+    stratify_on= TARGET,
+    test_size=0.0,
+    k_folds=5,
+    reduction_method=REDUCTION_METHOD,
+    keep_k=FEAT_NUM,
+    explain = False,
+    random_state=42
+)
 
 # print(trainer)
-# analyzer.data[TARGET] = analyzer.data[TARGET].astype(int)
+analyzer.data[TARGET] = analyzer.data[TARGET].astype(int)
 
-# print(f"Running Trainer for {TARGET}...")
-# trainer.run(analyzer.data)
+print(f"Running Trainer for {TARGET}...")
+trainer.run(analyzer.data)
