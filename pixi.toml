@@ -50,8 +50,9 @@ psutil = "7.0.0.*"
 ipython = ">=9.13.0,<10"
 
 [feature.jarvais.pypi-dependencies]
-jarvais = ">=0.21.0, <0.22"
+# jarvais = ">=0.21.0, <0.22"
 damply = ">=0.26.1, <0.27"
+jarvais = {path = "../jarvais", editable = true}
 
 
 
