@@ -32,6 +32,9 @@ I am saving out the fully preprocessed data as a `.csv` for easier downstream us
 
 - Decided on a train-validation split of 80-20
 
+## Analysis Notes
+[2026-06-03] Jarvais trainer is working with a test_set = 0 (thanks Josh), so I'm getting results now. The models Jarvais uses are more complex, so for stuff like the vol_count and volume, should look at some linear/log regression classifiers
+
 ## Dependencies and Environment
 
 
