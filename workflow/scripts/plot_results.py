@@ -17,7 +17,7 @@ val_ci_lower = data[f"val_{metric}_ci_min"]
 val_ci_upper = data[f"val_{metric}_ci_max"]
 
 # y_err = [y_mean - ci_lower, ci_upper - y_mean]
-colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray"]
+colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray", "tab:cyan", "tab:olive"]
 
 fig, axes = plt.subplots(1, 2, figsize=(16, 6), layout='tight')
 
