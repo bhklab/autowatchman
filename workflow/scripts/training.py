@@ -109,46 +109,46 @@ else:
     output_dir = output_dir / TARGET / MODEL_TYPE
 
 
-# if IMAGE_TYPE == 'original_full':
+if IMAGE_TYPE == 'original_full':
     # Run Analyzer
-    # print(f"Initializing Analyzer for {TARGET}...")
-    # analyzer = Analyzer(
-    #     train_data,
-    #     output_dir = output_dir / f"analyzer_{TARGET}",
-    #     categorical_columns = cat_cols,
-    #     continuous_columns = cont_cols,
-    #     target_variable = TARGET,
-    #     task="classification",
-    # )
+    print(f"Initializing Analyzer for {TARGET}...")
+    analyzer = Analyzer(
+        train_data,
+        output_dir = output_dir / f"analyzer_{TARGET}",
+        categorical_columns = cat_cols,
+        continuous_columns = cont_cols,
+        target_variable = TARGET,
+        task="classification",
+    )
 
-    # # Drop multiplotting, expensive operation
-    # analyzer.settings.visualization.plots.remove('multiplot')
-    # print(f"Running Analyzer for {MODEL_TYPE}_{FEAT_NUM} {TARGET}...")
-    # analyzer.run()
+    # Drop multiplotting, expensive operation
+    analyzer.settings.visualization.plots.remove('multiplot')
+    print(f"Running Analyzer for {MODEL_TYPE}_{FEAT_NUM} {TARGET}...")
+    analyzer.run()
 
 
-    # print(f"Initializing Trainer for {TARGET}...")
-    # # Run Trainer
-    # trainer = TrainerSupervised(
-    #     output_dir= output_dir / f"trainer_{TARGET}",
-    #     target_variable = TARGET,
-    #     task = 'binary',
-    #     # stratify_on= STRATIFY_ON,
-    #     test_size=0.0,
-    #     k_folds=5,
-    #     reduction_method=REDUCTION_METHOD,
-    #     keep_k=FEAT_NUM,
-    #     explain = False,
-    #     random_state=42
-    # )
+    print(f"Initializing Trainer for {TARGET}...")
+    # Run Trainer
+    trainer = TrainerSupervised(
+        output_dir= output_dir / f"trainer_{TARGET}",
+        target_variable = TARGET,
+        task = 'binary',
+        # stratify_on= STRATIFY_ON,
+        test_size=0.0,
+        k_folds=5,
+        reduction_method=REDUCTION_METHOD,
+        keep_k=FEAT_NUM,
+        explain = False,
+        random_state=42
+    )
 
-    # # print(trainer)
-    # analyzer.data[TARGET] = analyzer.data[TARGET].astype(int)
+    # print(trainer)
+    analyzer.data[TARGET] = analyzer.data[TARGET].astype(int)
 
-    # print(f"Running Trainer for {TARGET}...")
-    # trainer.run(analyzer.data)
-# else:
-#     print("Only training on original images, not negative controls.")
+    print(f"Running Trainer for {TARGET}...")
+    trainer.run(analyzer.data)
+else:
+    print("Only training on original images, not negative controls.")
     
 
 # Inference
