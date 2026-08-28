@@ -13,7 +13,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-def split_sampleid_col(data_df: pd.DataFrame, sample_id_col: str = 'SampleID', sample_id_map: dict = {0:'SampleNumber', 1:'PatientID'}) -> pd.DataFrame:
+def split_sampleid_col(data_df: pd.DataFrame, sample_id_col: str = 'SampleID', sample_id_map: dict = {0:'SampleNumber', 1:'PatientID'}, split_on:str = "__") -> pd.DataFrame:
     """Split the SampleID column into separate columns for PatientID and SampleNumber.
 
     Args:
@@ -24,11 +24,13 @@ def split_sampleid_col(data_df: pd.DataFrame, sample_id_col: str = 'SampleID', s
     Returns:
         pd.DataFrame: The dataframe with the SampleID column split into separate columns for PatientID and SampleNumber.
     """
+    logger.info(f'Splitting SampleID column into PatientID and SampleNumber columns using {sample_id_map} and split_on="{split_on}".')
     # Split the IDs into PatientID and SampleNumber columns, and rename the columns to match the clinical metadata
-    split_ids = data_df[sample_id_col].str.split("__", expand=True)
+    split_ids = data_df[sample_id_col].str.split(split_on, expand=True)
     
     # sample_id_map should match the order used in med-imagetools autopipeline processing
     split_ids = split_ids.rename(columns=sample_id_map)
+    logger.info(f'Renamed columns to {sample_id_map}.')
     
     # Add the split IDs to the dataframe
     labelled_data_df = pd.concat([split_ids, data_df], axis=1)
@@ -38,7 +40,8 @@ def split_sampleid_col(data_df: pd.DataFrame, sample_id_col: str = 'SampleID', s
 
 def label_radiomics(radiomic_feature_df: pd.DataFrame, 
                     split_labels: pd.Series,
-                    sample_id_map: dict = {0:'SampleNumber', 1:'PatientID'}
+                    sample_id_map: dict = {0:'SampleNumber', 1:'PatientID'},
+                    sample_split_on:str = "__"
                     ) -> pd.DataFrame:
     """Label the radiomic feature dataframe with the split labels and the PatientID and SampleNumber columns.
 
@@ -46,7 +49,7 @@ def label_radiomics(radiomic_feature_df: pd.DataFrame,
         radiomic_feature_df (pd.DataFrame): The radiomic feature dataframe.
         split_labels (pd.Series): The split labels for each sample.
         sample_id_map (dict, optional): A dictionary mapping the split ID columns to the desired column names. Defaults to {0:'SampleNumber', 1:'PatientID'}.
-    
+        sample_split_on (str, optional): String to use for splitting the SampleID. Defaults to "__".
     Returns:
         pd.DataFrame: The labelled radiomic feature dataframe with the split labels and separated PatientID and SampleNumber columns.
     """
@@ -56,20 +59,21 @@ def label_radiomics(radiomic_feature_df: pd.DataFrame,
     else:
         if 'SampleID' in radiomic_feature_df.columns:
             logger.info('Splitting SampleID column into PatientID and SampleNumber columns.')
-            labelled_radiomic_feature_df = split_sampleid_col(radiomic_feature_df, sample_id_col='SampleID', sample_id_map=sample_id_map)
+            labelled_radiomic_feature_df = split_sampleid_col(radiomic_feature_df, sample_id_col='SampleID', sample_id_map=sample_id_map, split_on=sample_split_on)
         else:
             message = 'SampleID column not found in radiomic feature dataframe. Cannot split into PatientID and SampleNumber columns.'
             logger.exception(message)
             raise ValueError(message)
 
-
     # Create a unique LymphID for each lymph node by combining the PatientID and MaskID columns
+    logger.info('Creating unique LymphID for each lymph node by combining PatientID and MaskID columns.')
     labelled_radiomic_feature_df['LymphID'] = labelled_radiomic_feature_df['PatientID'] + labelled_radiomic_feature_df['MaskID']
     
     # Index the dataframe by PatientID, SampleNumber, and MaskID to match the split metadata
     labelled_radiomic_feature_df = labelled_radiomic_feature_df.set_index(['PatientID', 'SampleNumber', 'MaskID'])
     
     # map the split column onto the radiomic stratification dataframe
+    logger.info('Mapping split labels onto the radiomic feature dataframe.')
     labelled_radiomic_feature_df = pd.merge(labelled_radiomic_feature_df, split_labels, left_index=True, right_index=True, how='inner')
 
     return labelled_radiomic_feature_df
@@ -79,6 +83,12 @@ def label_clinical(clinical_metadata_df: pd.DataFrame,
                    split_labels: pd.Series
                    ) -> pd.DataFrame:
     """Label the clinical metadata dataframe with the split labels. 
+
+    Args:
+        clinical_metadata_df (pd.DataFrame): The clinical metadata dataframe.
+        split_labels (pd.Series): The split labels for each sample (e.g. train, val).
+    Returns:
+        pd.DataFrame: The labelled clinical metadata dataframe with a new column containing the split labels.
     """
     if clinical_metadata_df.index.name != 'PatientID':
         message = 'Clinical metadata dataframe index is not named PatientID. Cannot merge with split labels.'
@@ -105,6 +115,21 @@ def main(
         valid_size: float = 0.2,
         random_seed=10,
         ) -> tuple[pd.Series, pd.DataFrame, pd.DataFrame]:
+    """Main function to perform train/valid splitting of the clinical and radiomic data.
+    
+    Args:
+        dataset_name (str): The name of the dataset.
+        clinical_metadata_path (Path | str): The path to the clinical metadata CSV file.
+        radiomic_feature_path (Path | str): The path to the radiomic feature CSV file.
+        clinical_stratification (list[str]): The list of columns in the clinical metadata to use for stratification.
+        radiomic_stratification (list[str], optional): The list of columns in the radiomic feature dataframe to use for stratification. Defaults to None.
+        sample_id_map (dict, optional): A dictionary mapping the split ID columns to the desired column names. Defaults to {0:'SampleNumber', 1:'PatientID'}.
+        valid_size (float, optional): The proportion of the dataset to include in the validation split. Defaults to 0.2.
+        random_seed (int, optional): The random seed to use for reproducibility. Defaults to 10.
+    
+    Returns:
+        tuple[pd.Series, pd.DataFrame, pd.DataFrame]: A tuple containing the split labels (pd.Series), the labelled clinical metadata dataframe (pd.DataFrame), and the labelled radiomic feature dataframe (pd.DataFrame).
+    """
     # load metadata file
     clinical_metadata_df = pd.read_csv(clinical_metadata_path, index_col=0)
     logger.info(f'Loaded clinical metadata from {clinical_metadata_path} with shape {clinical_metadata_df.shape}')
@@ -145,7 +170,6 @@ def main(
     else:
         combined_strat_df = clinical_stratification_df.copy()
     
-    print(combined_strat_df.columns)
     # Perform train valid splitting
     tr_samples, valid_samples = train_test_split(
         combined_strat_df,
@@ -187,15 +211,6 @@ def main(
 
     # scatter plot for volume of lymph nodes
     labelled_radiomic_feature_df = label_radiomics(radiomic_feature_df, split_labels)
-
-    # map the split column onto the radiomic stratification dataframe
-    # split_ids = radiomic_feature_df.SampleID.str.split("_", expand=True)
-    # split_ids = split_ids.rename(columns={0:'PatientID', 1:'SampleNumber'})
-
-    # labelled_radiomic_feature_df = pd.concat([split_ids, radiomic_feature_df], axis=1)
-    # labelled_radiomic_feature_df['LymphID'] = labelled_radiomic_feature_df['PatientID'] + labelled_radiomic_feature_df['MaskID']
-    # labelled_radiomic_feature_df = labelled_radiomic_feature_df.set_index(['PatientID', 'SampleNumber', 'MaskID'])
-    # labelled_radiomic_feature_df['split'] = split_labels
     
     scatter_fig = plt.figure(figsize=(8,5))
     scatter_fig.add_axes(
@@ -236,18 +251,18 @@ def main(
 if __name__ == '__main__':
     logger.info(f'Starting data_splitting script...')
 
-    dataset_name = 'PMCC_AutoWATChmAN'
-    image_type = 'original_full'
+    DATASET_NAME = 'PMCC_AutoWATChmAN'
+    # Set what READII image type to use for the radiomic and/or deep features. Default is 'original_full'.
+    IMAGE_TYPE = 'original_full'
+    CLINICAL_STRATIFICATION = ['RELAPSE_STATUS']
+    RADIOMIC_STRATIFICATION = ['original_shape_MeshVolume']
+    VALID_SIZE = .2
 
-    clinical_metadata_path = dirs.PROCDATA / dataset_name / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.csv'
-    radiomic_feature_path = dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / 'compiled_linear_all_images_features' / f'{image_type}_features.csv'
+    clinical_metadata_path = dirs.PROCDATA / DATASET_NAME / 'metadata' / 'cleaned_extracted_data_disappearing_nodes_filtered.csv'
+    radiomic_feature_path = dirs.PROCDATA / DATASET_NAME / 'features' / 'pyradiomics' / 'compiled_linear_all_images_features' / f'{IMAGE_TYPE}_features.csv'
+    deep_feature_path = dirs.PROCDATA / DATASET_NAME / 'features' / 'fmcib' / 'centroid_50_50_50' / 'compiled_fmcib_features' / f'{IMAGE_TYPE}_features.csv'
 
-    clinical_stratification = ['RELAPSE_STATUS']
-    radiomic_stratification = ['original_shape_MeshVolume']
-
-    valid_size = .2
-
-    label_file_path = dirs.PROCDATA / dataset_name / 'metadata' / f'train_valid_{valid_size}_labels.csv'
+    label_file_path = dirs.PROCDATA / DATASET_NAME / 'metadata' / f'train_valid_{VALID_SIZE}_labels.csv'
 
     if label_file_path.exists():
         logger.info('Split labels already generated. Loading existing file.')
@@ -258,13 +273,16 @@ if __name__ == '__main__':
 
         lbl_clinical = label_clinical(clinical_metadata_df, labels)
         lbl_radiomic = label_radiomics(radiomic_feature_df, labels)
+        
     
     else:
         logger.info(f'No split labels found at {label_file_path}. Running function to generate them.')
-        labels, lbl_clinical, lbl_radiomic = main(dataset_name, clinical_metadata_path, radiomic_feature_path, clinical_stratification, radiomic_stratification, valid_size=valid_size, random_seed=42)
+        labels, lbl_clinical, lbl_radiomic = main(DATASET_NAME, clinical_metadata_path, radiomic_feature_path, CLINICAL_STRATIFICATION, RADIOMIC_STRATIFICATION, valid_size=VALID_SIZE, random_seed=42)
         labels.to_csv(label_file_path, na_rep='NA')
     
+    deep_feature_df = pd.read_csv(deep_feature_path)
+    lbl_deep = label_radiomics(deep_feature_df, labels, sample_id_map={0:'PatientID', 1:'SampleNumber'}, sample_split_on="_")
 
-    lbl_clinical.to_csv(dirs.PROCDATA / dataset_name / 'metadata' / f'labelled_clinical_metadata_valid_{valid_size}.csv', na_rep='NA')
-    lbl_radiomic.to_csv(dirs.PROCDATA / dataset_name / 'features' / 'pyradiomics' / f'labelled_{image_type}_linear_all_images_features_valid_{valid_size}.csv', na_rep='NA')
-    
+    lbl_clinical.to_csv(dirs.PROCDATA / DATASET_NAME / 'metadata' / f'labelled_clinical_metadata_valid_{VALID_SIZE}.csv', na_rep='NA')
+    lbl_radiomic.to_csv(dirs.PROCDATA / DATASET_NAME / 'features' / 'pyradiomics' / f'labelled_{IMAGE_TYPE}_linear_all_images_features_valid_{VALID_SIZE}.csv', na_rep='NA')
+    lbl_deep.to_csv(dirs.PROCDATA / DATASET_NAME / 'features' / 'fmcib' / 'centroid_50_50_50' / f'labelled_{IMAGE_TYPE}_features_valid_{VALID_SIZE}.csv', na_rep='NA')

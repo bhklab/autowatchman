@@ -36,6 +36,9 @@ I am saving out the fully preprocessed data as a `.csv` for easier downstream us
 
 Justin also pointed out that I should stratify by patient even for the radiomic models, so adding that in. 
 
+#### Missing sample for shuffled negative control PyRadiomic features
+[2026-07-30] AutoWATChmAN-005,0004,ROI__[Lymph_node_2] is missing in shuffled_non_roi and AutoWATChmAN-003,0002,ROI__[Lymph_node_1] is missing in shuffled_roi. Just using randomized to get around this for now. 
+
 ## Analysis Notes
 [2026-06-03] Jarvais trainer is working with a test_set = 0 (thanks Josh), so I'm getting results now. The models Jarvais uses are more complex, so for stuff like the vol_count and volume, should look at some linear/log regression classifiers
 
