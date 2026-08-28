@@ -29,7 +29,12 @@ If you haven't installed it yet, [follow these instructions](https://pixi.sh/lat
 
 1. Clone this repository to your local machine
 2. Navigate to the project directory
-3. Set up the environment using Pixi:
+3. Clone the `jarvais` repo into the project directory
+
+```bash
+git clone https://github.com/pmcdi/jarvais.git
+```
+4. Set up the environment using Pixi:
 
 ```bash
 pixi install
